@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from mcp_visao.control import parse_keys  # noqa: E402
+from mcp_coruja.control import parse_keys  # noqa: E402
 
 assert parse_keys("s") == ([], 0x53)                 # S
 assert parse_keys("w") == ([], 0x57)                 # W

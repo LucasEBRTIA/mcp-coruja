@@ -7,7 +7,7 @@ import tempfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "src"))
 
-from mcp_visao.game_profile import load, names  # noqa: E402
+from mcp_coruja.game_profile import load, names  # noqa: E402
 
 
 def write(base, name, data):

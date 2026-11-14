@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from mcp_visao.fusion import fuse  # noqa: E402
+from mcp_coruja.fusion import fuse  # noqa: E402
 
 texts = [
     {"txt": "Jogar", "box": [830, 410, 60, 20], "c": 0.9},   # dentro do botao

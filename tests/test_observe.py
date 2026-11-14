@@ -9,7 +9,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from mcp_visao.server import _read  # noqa: E402
+from mcp_coruja.server import _read  # noqa: E402
 
 img = cv2.imdecode(np.fromfile(str(ROOT / "tests" / "fixtures" / "game.jpg"), np.uint8), cv2.IMREAD_COLOR)
 assert img is not None, "fixture game.jpg ausente"

@@ -1,12 +1,12 @@
 {
   "mcp": {
     "servers": {
-      "visao-onnx": {
+      "coruja": {
         "type": "local",
         "command": [
           "<CAMINHO_DO_PROJETO>\\.venv\\Scripts\\python.exe",
           "-m",
-          "mcp_visao.server"
+          "mcp_coruja.server"
         ],
         "enabled": true
       }

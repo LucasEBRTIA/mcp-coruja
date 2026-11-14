@@ -1,4 +1,4 @@
-# MCP Visão ONNX — "olhos baratos" para agentes de IA
+# MCP Coruja — "olhos baratos" para agentes de IA
 
 > Plugin/MCP que captura a tela de um programa ou jogo, processa localmente com modelos ONNX
 > (OCR + detecção de elementos + objetos do jogo + legenda opcional) e devolve **JSON compacto**
@@ -92,7 +92,7 @@ agente só o que importa, em texto estruturado.
 ## 5. Estrutura de pastas
 
 ```
-mcp-visao-onnx/
+mcp-coruja/
 ├─ README.md
 ├─ pyproject.toml
 ├─ requirements.txt
@@ -106,7 +106,7 @@ mcp-visao-onnx/
 │  ├─ ui_detector/
 │  ├─ games/<perfil>/
 │  └─ captioner/
-├─ src/mcp_visao/
+├─ src/mcp_coruja/
 │  ├─ server.py                 # definição das tools MCP
 │  ├─ capture/
 │  │  ├─ base.py                # interface Capturer
@@ -335,7 +335,7 @@ input:
 ## 10. Esqueleto inicial do servidor (ponto de partida)
 
 ```python
-# src/mcp_visao/server.py
+# src/mcp_coruja/server.py
 from mcp.server.fastmcp import FastMCP
 
 from .state.frame_store import FrameStore
@@ -347,7 +347,7 @@ from .vision.fusion import fuse
 from .vision.diff import frame_changed
 from .output.formatter import to_json, to_compact
 
-mcp = FastMCP("visao-onnx")
+mcp = FastMCP("coruja")
 
 store = FrameStore()
 capturer = None          # criado em set_target
@@ -407,10 +407,10 @@ Registro no cliente MCP (exemplo genérico):
 ```json
 {
   "mcpServers": {
-    "visao-onnx": {
+    "coruja": {
       "command": "python",
-      "args": ["-m", "mcp_visao.server"],
-      "cwd": "C:/caminho/para/mcp-visao-onnx"
+      "args": ["-m", "mcp_coruja.server"],
+      "cwd": "C:/caminho/para/mcp-coruja"
     }
   }
 }
@@ -422,7 +422,7 @@ Registro no cliente MCP (exemplo genérico):
 
 Faça este teste antes e depois, com o mesmo roteiro (ex.: abrir menu → iniciar jogo → andar 10 s):
 
-| Métrica | Screenshot | MCP Visão ONNX |
+| Métrica | Screenshot | MCP Coruja |
 |---|---|---|
 | Tokens por observação | | |
 | Tokens por roteiro completo | | |
@@ -451,7 +451,7 @@ Se o último número for alto, aumente o uso de `look` ou melhore o detector do 
 ## 13. Prompt de sistema sugerido para o agente
 
 ```
-Você tem acesso ao MCP "visao-onnx", que enxerga a tela por texto estruturado.
+Você tem acesso ao MCP "coruja", que enxerga a tela por texto estruturado.
 
 Regras de uso:
 1. Comece com set_target e depois observe.

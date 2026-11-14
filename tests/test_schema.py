@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from mcp_visao.schema import quad_to_box, to_compact, to_json  # noqa: E402
+from mcp_coruja.schema import quad_to_box, to_compact, to_json  # noqa: E402
 
 # retangulo torto de 100x50
 assert quad_to_box([[10, 20], [110, 22], [108, 70], [12, 68]]) == [10, 20, 100, 50]

@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from mcp_visao.diff import diff_elements  # noqa: E402
+from mcp_coruja.diff import diff_elements  # noqa: E402
 
 prev = [{"id": "e1", "t": "text", "txt": "Jogar", "box": [10, 10, 100, 20], "c": 0.9},
         {"id": "e2", "t": "icon", "txt": "", "box": [200, 200, 40, 40], "c": 0.8},

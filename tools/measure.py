@@ -10,8 +10,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from mcp_visao import server as s  # noqa: E402
-from mcp_visao.schema import to_compact  # noqa: E402
+from mcp_coruja import server as s  # noqa: E402
+from mcp_coruja.schema import to_compact  # noqa: E402
 
 
 def main(titles):

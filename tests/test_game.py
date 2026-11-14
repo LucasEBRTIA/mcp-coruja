@@ -7,7 +7,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from mcp_visao.game_detector import _decode  # noqa: E402
+from mcp_coruja.game_detector import _decode  # noqa: E402
 
 CLASSES = ["enemy", "chest"]
 
@@ -34,8 +34,8 @@ assert _decode(out, CLASSES, min_conf=0.95) == []
 # caminho real do ONNX: o modelo de UI tem o mesmo layout (4 + 1 classe) e serve de cobaia
 import cv2  # noqa: E402
 
-from mcp_visao.detector import MODEL_PATH  # noqa: E402
-from mcp_visao.game_detector import GameDetector  # noqa: E402
+from mcp_coruja.detector import MODEL_PATH  # noqa: E402
+from mcp_coruja.game_detector import GameDetector  # noqa: E402
 
 if MODEL_PATH.exists():
     fixture = Path(__file__).resolve().parent / "fixtures" / "game.jpg"

@@ -1,4 +1,4 @@
-# MCP Visão ONNX
+# MCP Coruja
 
 Servidor MCP local (Windows) que **transforma uma janela em texto compacto**: captura o frame,
 lê o texto com OCR, acha os elementos clicáveis com um detector de UI e devolve isso em linhas
@@ -56,7 +56,7 @@ troque `<CAMINHO_DO_PROJETO>` pelo caminho desta pasta (o arquivo real fica fora
 caminho absoluto). Para outro cliente, o comando é:
 
 ```
-"C:\...\MCP Visão Onnx\.venv\Scripts\python.exe" -m mcp_visao.server
+"C:\...\mcp-coruja\.venv\Scripts\python.exe" -m mcp_coruja.server
 ```
 
 O servidor fala stdio; não escreva nada em stdout além do protocolo.
@@ -190,7 +190,7 @@ Sem os passos 2–4, nada quebra: `detect_game` responde explicando o que falta.
 ## Estrutura
 
 ```
-src/mcp_visao/
+src/mcp_coruja/
   server.py        ferramentas MCP, captura (PrintWindow/mss), DPI, foco
   control.py       SendInput: clique, teclas, texto, roda; guarda de cursor
   detector.py      YOLOv8 ONNX de elementos de UI

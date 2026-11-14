@@ -3,7 +3,7 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "mcp-visao-onnx"
+name = "mcp-coruja"
 version = "0.1.0"
 description = "Servidor MCP que le a janela do Windows (OCR + ONNX local) e devolve texto compacto, com controle de mouse/teclado"
 readme = "README.md"
