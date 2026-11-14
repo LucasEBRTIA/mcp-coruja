@@ -1,0 +1,15 @@
+{
+  "mcp": {
+    "servers": {
+      "visao-onnx": {
+        "type": "local",
+        "command": [
+          "<CAMINHO_DO_PROJETO>\\.venv\\Scripts\\python.exe",
+          "-m",
+          "mcp_visao.server"
+        ],
+        "enabled": true
+      }
+    }
+  }
+}

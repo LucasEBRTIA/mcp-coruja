@@ -1,0 +1,9 @@
+# Fase 1. Versoes exatas: requirements.lock.txt
+# ORDEM IMPORTA: rapidocr-onnxruntime arrasta o onnxruntime comum, que sobrescreve
+# o directml. Se o OCR ficar ~8s por janela, reinstale onnxruntime-directml por ultimo:
+#   pip uninstall -y onnxruntime && pip install onnxruntime-directml
+mcp
+mss
+rapidocr-onnxruntime
+onnxruntime-directml
+tokenizers  # Florence-2 (describe_scene): so o tokenizer, sem transformers/torch 

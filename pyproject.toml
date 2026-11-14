@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcp-visao-onnx"
+version = "0.1.0"
+description = "Servidor MCP que le a janela do Windows (OCR + ONNX local) e devolve texto compacto, com controle de mouse/teclado"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["mcp", "mss", "rapidocr-onnxruntime", "onnxruntime-directml", "tokenizers"]
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]

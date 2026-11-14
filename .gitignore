@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+
+# Modelos ONNX (1,7 GB): baixe com tools/fetch_models.py
+models/
+*.onnx
+*.part
+
+# Dados locais (perfil de jogo, frames de dataset, prints de debug)
+debug/
+profiles/
+
+# Config do cliente MCP com caminho absoluto (use opencode.example.json)
+opencode.json

@@ -1,2 +1,2 @@
-# Auto detect text files and perform LF normalization
+# normaliza fim de linha no repo (Windows -> CRLF no checkout, LF no Git)
 * text=auto
