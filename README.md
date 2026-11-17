@@ -81,6 +81,7 @@ O servidor fala stdio; não escreva nada em stdout além do protocolo.
 | `capture_frames(count, interval_ms)` | salva frames do jogo para montar o dataset | ~40 ms/frame |
 | `find(text)` | busca no último `observe`; devolve IDs clicáveis | instantâneo |
 | `click(target?, x, y, button, double, auto_observe)` | clique por ID (`eN`/`oN`) ou coordenada da janela | 45 ms (+ observe) |
+| `do(actions, auto_observe)` | várias ações numa chamada (`click`/`press`/`type`/`scroll`/`wait`) e um diff no fim | ~50 ms/ação |
 | `press(keys, hold_ms, auto_observe)` | teclas e combos (`ctrl+s`, `shift+up`, `enter`) | ~1 ms |
 | `type_text(text, delay_ms, auto_observe)` | digita texto unicode | ~15 ms/caractere |
 | `scroll(dy, x?, y?)` | roda do mouse (positivo = para cima) | ~50 ms |
@@ -96,7 +97,8 @@ dentro do clique.
 2. `observe()` uma vez para ter o mapa da tela.
 3. `read_region("minimap")` (nome do perfil) ou `read_region([x,y,w,h])` para números de HUD em loop;
    `observe(mode="diff")` depois de cada ação.
-4. Clique pelo ID do último observe: `click(target="e7")`.
+4. Clique pelo ID do último observe: `click(target="e7")`. Para passos que não precisam de inspeção
+   entre si, mande tudo de uma vez: `do([{"click":"e7"},{"type":"Inteligência Artificial"},{"press":"enter"},{"wait":800}])`.
 5. Só quando o texto não bastar: `look(box)` (forma/cor), `detect_open(["chest"])` (objeto sem texto)
    ou `detect_game()` (detector treinado do perfil).
 6. IDs valem para o frame em que nasceram. Se a tela mudou, observe de novo.
@@ -182,6 +184,7 @@ Sem os passos 2–4, nada quebra: `detect_game` responde explicando o que falta.
 .\.venv\Scripts\python tests\test_fusion.py     # texto + caixa -> botão/texto
 .\.venv\Scripts\python tests\test_diff.py       # diff entre frames
 .\.venv\Scripts\python tests\test_keys.py       # parser de combos
+.\.venv\Scripts\python tests\test_actions.py    # validação das ações em lote
 .\.venv\Scripts\python tests\test_observe.py    # OCR + detector na fixture
 .\.venv\Scripts\python tests\test_describe.py   # Florence (pula sem pesos)
 .\.venv\Scripts\python tests\test_open.py       # OWLv2 (pula sem pesos)

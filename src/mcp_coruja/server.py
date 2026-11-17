@@ -608,9 +608,52 @@ def _after(auto_observe, wait=0.15):
     return observe(mode="diff")
 
 
-def _screen_xy(x, y):
-    r = _rect(_target["hwnd"])
-    return r.left + x, r.top + y
+def _screen_xy(x, y):
+    r = _rect(_target["hwnd"])
+    return r.left + x, r.top + y
+
+
+def _element(target):
+    return next((e for src in (_state["elements"], _state["open"]) for e in src if e["id"] == target), None)
+
+
+ACTION_KEYS = ("click", "press", "type", "scroll", "wait")
+
+
+def _check_action(a):
+    """Valida so a forma (nada de OS): erro aqui aborta o lote inteiro antes de agir."""
+    if not isinstance(a, dict) or len(a) != 1 or next(iter(a)) not in ACTION_KEYS:
+        raise ValueError(f"acao invalida {a!r}: use uma chave de {list(ACTION_KEYS)}")
+    (key, val), = a.items()
+    ok = {"click": lambda v: isinstance(v, str) or (isinstance(v, (list, tuple)) and len(v) == 2),
+          "press": lambda v: isinstance(v, str) and bool(v.strip()),
+          "type": lambda v: isinstance(v, str),
+          "scroll": lambda v: isinstance(v, int) and not isinstance(v, bool),
+          "wait": lambda v: isinstance(v, (int, float)) and 0 <= v <= 10000}[key]
+    if not ok(val):
+        raise ValueError(f"valor invalido em {a!r}")
+
+
+def _run_action(a):
+    (key, val), = a.items()
+    if key == "click":
+        if isinstance(val, str):
+            el = _element(val)
+            if not el:
+                raise ValueError(f"{val} nao existe no ultimo observe/detect_open")
+            bx, by, bw, bh = el["box"]
+            x, y = bx + bw // 2, by + bh // 2
+        else:
+            x, y = int(val[0]), int(val[1])
+        control.click_at(*_screen_xy(x, y))
+    elif key == "press":
+        control.press(val)
+    elif key == "type":
+        control.type_text(val)
+    elif key == "scroll":
+        control.scroll(int(val))
+    else:
+        time.sleep(float(val) / 1000)
 
 
 @mcp.tool()
@@ -620,11 +663,11 @@ def click(target: str = "", x: int = -1, y: int = -1, button: str = "left",
     err = _ensure_foreground()
     if err:
         return json.dumps({"error": err})
-    if target:
-        el = next((e for src in (_state["elements"], _state["open"]) for e in src if e["id"] == target), None)
-        if not el:
-            return json.dumps({"error": f"{target} nao existe no ultimo observe/detect_open; rode um deles"})
-        bx, by, bw, bh = el["box"]
+    if target:
+        el = _element(target)
+        if not el:
+            return json.dumps({"error": f"{target} nao existe no ultimo observe/detect_open; rode um deles"})
+        bx, by, bw, bh = el["box"]
         x, y = bx + bw // 2, by + bh // 2
     if x < 0 or y < 0:
         return json.dumps({"error": "informe target ou x,y"})
@@ -661,8 +704,49 @@ def type_text(text: str, delay_ms: int = 10, auto_observe: bool = True) -> str:
     return _after(auto_observe)
 
 
-@mcp.tool()
-def scroll(dy: int, x: int = -1, y: int = -1, auto_observe: bool = True) -> str:
+@mcp.tool()
+def do(actions: list[dict], auto_observe: bool = True) -> str:
+    """Executa varias acoes em sequencia numa unica chamada (um clique, uma digitacao, um enter...).
+
+    Use quando os passos NAO precisam de inspecao entre si: clicar na busca, digitar e dar enter;
+    abrir menu e escolher item. Economiza um passo de modelo por acao.
+    Cada acao e um dict com UMA chave:
+      {"click": "e7"}        id do ultimo observe/detect_open
+      {"click": [820, 300]}  coordenada da janela
+      {"type": "texto"}      texto unicode
+      {"press": "enter"}     tecla ou combo: ctrl+s, shift+up
+      {"scroll": -3}         roda do mouse (positivo = para cima)
+      {"wait": 800}          pausa em ms (use depois de enter para a pagina carregar)
+    Para no primeiro erro e diz quantas rodaram. No fim devolve o diff (auto_observe),
+    truncado em 15 elementos quando nao existe frame anterior. Precisa ver no meio? Use solto.
+    """
+    if _target["hwnd"] is None:
+        return json.dumps({"error": "chame set_target antes"})
+    if not actions:
+        return json.dumps({"error": "informe ao menos uma acao"})
+    try:
+        for a in actions:
+            _check_action(a)
+    except ValueError as e:
+        return json.dumps({"error": f"{e}; nada foi executado"})
+    err = _ensure_foreground()
+    if err:
+        return json.dumps({"error": err})
+    try:
+        for i, a in enumerate(actions):
+            if i:
+                time.sleep(0.05)  # rajada de SendInput embaralha teclas (medido: 0 ms corrompe)
+            _run_action(a)
+    except (OSError, ValueError) as e:
+        return json.dumps({"error": str(e), "done": i, "of": len(actions)})
+    if not auto_observe:
+        return json.dumps({"ok": True, "done": len(actions)})
+    time.sleep(0.3)
+    return observe(mode="diff", max_elements=15)
+
+
+@mcp.tool()
+def scroll(dy: int, x: int = -1, y: int = -1, auto_observe: bool = True) -> str:
     """Roda a roda do mouse dy entalhes (positivo = para cima) em x,y da janela ou onde o cursor estiver."""
     err = _ensure_foreground()
     if err:
