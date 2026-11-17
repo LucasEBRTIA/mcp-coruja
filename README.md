@@ -7,6 +7,8 @@ screenshot, e ainda pode clicar/digitar na janela.
 
 Tudo roda na máquina: ONNX Runtime com DirectML (GPU) ou CPU. Nenhuma chamada de rede em runtime.
 
+Números medidos contra UI Automation e VLM puro (screenshots): **[BENCHMARK.md](BENCHMARK.md)**.
+
 ## Requisitos
 
 - Windows 10/11 e Python 3.10+
