@@ -71,6 +71,25 @@ Os dois números andam juntos: **tokens novos** é o que entra de fato a cada ch
 > [!NOTE]
 > Mesmo executando **3 passos a menos** (17 vs 20), o **VLM Puro consumiu mais tokens** — tanto novos no turno (≈178 mil vs ≈157 mil) quanto totais (2.390.493 vs 2.381.247) — devido ao peso multimodal das capturas de tela em Full HD acumuladas no histórico.
 
+### O que compõe os "tokens novos por step"
+
+O valor da tabela é do **turno inteiro**, não da ferramenta. Medindo o lado do `mcp-coruja` com
+`python tools/bench.py "<janela>"` (mesma máquina, mediana de 3 execuções):
+
+| Componente | Ordem de grandeza |
+| :--- | ---: |
+| Definições das 20 ferramentas (schema enviado a cada request) | ≈ **1.900 tokens** |
+| Resposta de uma ferramenta | **50–650 tokens** (`observe` completo ≈650, `diff` ≈70, `read_region` ≈90) |
+| Raciocínio e mensagens do agente | o restante (≈5.000+) |
+
+Latência por chamada (não coberta pelo teste de tokens): `observe` ≈480 ms, `read_region` ≈220 ms,
+`detect_open` ≈400 ms, `look` ≈35 ms com DirectML.
+
+Isso deixa claro o que o `mcp-coruja` controla: a resposta da ferramenta é uma fração pequena do
+total por passo. O que muda em fluxos longos é o que fica no histórico — texto compacto por passo
+contra uma imagem Full HD por passo.
+
+
 ---
 
 ## 📈 Gráficos Comparativos
