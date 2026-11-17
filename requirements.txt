@@ -6,4 +6,5 @@ mcp
 mss
 rapidocr-onnxruntime
 onnxruntime-directml
-tokenizers  # Florence-2 (describe_scene): so o tokenizer, sem transformers/torch 
+tokenizers  # Florence-2 (describe_scene): so o tokenizer, sem transformers/torch
+windows-capture  # captura WGC: janela DirectX/atras de outra (fallback do PrintWindow) 

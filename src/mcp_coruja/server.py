@@ -44,6 +44,7 @@ user32.GetClassNameW.argtypes = [wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]
 user32.GetAncestor.argtypes = [wintypes.HWND, wintypes.UINT]
 user32.GetAncestor.restype = wintypes.HWND
 user32.GetForegroundWindow.restype = wintypes.HWND
+user32.ClientToScreen.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.POINT)]
 user32.SetForegroundWindow.argtypes = [wintypes.HWND]
 user32.SwitchToThisWindow.argtypes = [wintypes.HWND, wintypes.BOOL]
 kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
@@ -137,11 +138,63 @@ def _grab(hwnd):
     img = _printwindow(hwnd, w, h)
     if img.max() > 8:
         return img
-    # shortcut: DirectX/tela cheia costuma voltar preto do PrintWindow; cai no mss
-    # (só correto se a janela estiver na frente). Upgrade: WGC/windows-capture.
+    # PrintWindow volta preto em DirectX/tela cheia. WGC pega a janela mesmo atras de outra,
+    # mas so casa por titulo: usa so quando o titulo e unico entre as janelas visiveis.
+    try:
+        return _wgc(hwnd, w, h)
+    except Exception:
+        pass
+    # ultimo recurso: mss, que so esta correto com a janela na frente (senao pega outra)
+    if user32.GetForegroundWindow() != (_frame_host(hwnd) or hwnd):
+        raise ValueError("PrintWindow preto e WGC indisponivel: traga a janela para a frente "
+                         "(o mss capturaria o que estiver por cima)")
     with mss.MSS() as sct:
         shot = sct.grab({"left": r.left, "top": r.top, "width": w, "height": h})
     return np.array(shot)[:, :, :3]  # BGRA -> BGR
+
+
+def _wgc(hwnd, w, h):
+    """Frame via Windows Graphics Capture, alinhado ao retangulo da janela (coords do resto do codigo)."""
+    from windows_capture import WindowsCapture
+
+    title = ctypes.create_unicode_buffer(256)
+    user32.GetWindowTextW(hwnd, title, 256)
+    if sum(1 for win in _windows() if win["title"] == title.value) != 1:
+        raise ValueError("titulo ambiguo para WGC")
+
+    frames = []
+    cap = WindowsCapture(cursor_capture=False, draw_border=False, window_name=title.value)
+
+    @cap.event
+    def on_frame_arrived(frame, control):
+        frames.append(frame.frame_buffer.copy())
+        control.stop()
+
+    @cap.event
+    def on_closed():
+        pass
+
+    ctl = cap.start_free_threaded()
+    t0 = time.perf_counter()
+    while not frames and time.perf_counter() - t0 < 1.0:
+        if ctl.is_finished():
+            break
+        time.sleep(0.02)
+    ctl.stop()
+    ctl.wait()
+    if not frames:
+        raise ValueError("WGC nao entregou frame")
+
+    # WGC entrega a AREA CLIENTE; preenche a tela do tamanho da janela no lugar certo
+    canvas = np.zeros((h, w, 3), np.uint8)
+    p = wintypes.POINT(0, 0)
+    user32.ClientToScreen(hwnd, ctypes.byref(p))
+    r = _rect(hwnd)
+    dx, dy = max(0, p.x - r.left), max(0, p.y - r.top)
+    frame = frames[0][:, :, :3]  # BGRA -> BGR
+    fh, fw = min(frame.shape[0], h - dy), min(frame.shape[1], w - dx)
+    canvas[dy:dy + fh, dx:dx + fw] = frame[:fh, :fw]
+    return canvas
 
 
 class _BmiHeader(ctypes.Structure):

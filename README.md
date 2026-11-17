@@ -165,8 +165,9 @@ Sem os passos 2–4, nada quebra: `detect_game` responde explicando o que falta.
 
 ## Limites conhecidos
 
-- **PrintWindow volta preto** em jogo DirectX/fullscreen; nesse caso a captura cai para `mss`,
-  que exige a janela **na frente** (senão captura o que estiver por cima).
+- **PrintWindow volta preto** em jogo DirectX/fullscreen. Aí a captura tenta WGC
+  (`windows-capture`), que pega a janela **mesmo atrás de outra**; se o WGC falhar, só resta `mss`,
+  que exige a janela na frente — senão a ferramenta devolve erro em vez de capturar o app errado.
 - **Jogos com anti-cheat** (ex.: Zenless Zone Zero) ignoram `SendInput`, travam o foco e prendem
   o cursor num clip 1×1. Aí só visão funciona; controle exigiria driver/hardware. O `click`
   detecta o cursor preso e devolve erro em vez de clicar no lugar errado.
