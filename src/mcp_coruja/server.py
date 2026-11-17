@@ -746,6 +746,39 @@ def do(actions: list[dict], auto_observe: bool = True) -> str:
 
 
 @mcp.tool()
+def wait_for(text: str, timeout_ms: int = 8000, region: list[int] | str | None = None,
+             gone: bool = False) -> str:
+    """Espera um texto aparecer (ou sumir) na janela, em vez de o agente ficar dando observe em loop.
+
+    Use depois de uma acao cujo resultado demora: carregou a pagina, abriu o menu, terminou de
+    salvar. text e um trecho, sem diferenciar maiusculas. gone=True espera o texto desaparecer
+    (ex.: fim de um "carregando"). region=[x,y,w,h] ou nome de HUD do perfil.
+    Devolve o diff quando o texto aparece/some; se estourar o tempo, devolve erro com o ms gasto.
+    """
+    if _target["hwnd"] is None:
+        return json.dumps({"error": "chame set_target antes"})
+    needle = text.strip().casefold()
+    if not needle:
+        return json.dumps({"error": "informe o texto a esperar"})
+    t0 = time.perf_counter()
+    deadline = t0 + max(0, timeout_ms) / 1000
+    while True:
+        try:
+            img = _grab(_target["hwnd"])
+            crop, _, _ = _crop(img, _region(region))
+        except ValueError as e:
+            return json.dumps({"error": str(e)})
+        found = any(needle in t["txt"].casefold() for t in _ocr_texts(crop, 0.5))
+        if found != gone:  # achou (ou sumiu, quando gone=True): terminou
+            return observe(mode="diff", max_elements=15)
+        if time.perf_counter() >= deadline:
+            return json.dumps({"error": f"timeout de {timeout_ms} ms: '{text}' nao "
+                                        f"{'sumiu' if gone else 'apareceu'}",
+                               "ms": int((time.perf_counter() - t0) * 1000)})
+        time.sleep(0.2)
+
+
+@mcp.tool()
 def scroll(dy: int, x: int = -1, y: int = -1, auto_observe: bool = True) -> str:
     """Roda a roda do mouse dy entalhes (positivo = para cima) em x,y da janela ou onde o cursor estiver."""
     err = _ensure_foreground()

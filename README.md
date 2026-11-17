@@ -82,6 +82,7 @@ O servidor fala stdio; não escreva nada em stdout além do protocolo.
 | `find(text)` | busca no último `observe`; devolve IDs clicáveis | instantâneo |
 | `click(target?, x, y, button, double, auto_observe)` | clique por ID (`eN`/`oN`) ou coordenada da janela | 45 ms (+ observe) |
 | `do(actions, auto_observe)` | várias ações numa chamada (`click`/`press`/`type`/`scroll`/`wait`) e um diff no fim | ~50 ms/ação |
+| `wait_for(text, timeout_ms, region?, gone?)` | espera um texto aparecer (ou sumir) e devolve o diff | ~0,2–0,6 s/checagem |
 | `press(keys, hold_ms, auto_observe)` | teclas e combos (`ctrl+s`, `shift+up`, `enter`) | ~1 ms |
 | `type_text(text, delay_ms, auto_observe)` | digita texto unicode | ~15 ms/caractere |
 | `scroll(dy, x?, y?)` | roda do mouse (positivo = para cima) | ~50 ms |
@@ -96,7 +97,7 @@ dentro do clique.
 1. `list_windows` → `set_target("Nome do jogo")`, ou `list_profiles` → `set_profile("jogo")` se ele existir.
 2. `observe()` uma vez para ter o mapa da tela.
 3. `read_region("minimap")` (nome do perfil) ou `read_region([x,y,w,h])` para números de HUD em loop;
-   `observe(mode="diff")` depois de cada ação.
+   depois de uma ação, `wait_for("texto esperado")` em vez de ficar chamando `observe` até mudar.
 4. Clique pelo ID do último observe: `click(target="e7")`. Para passos que não precisam de inspeção
    entre si, mande tudo de uma vez: `do([{"click":"e7"},{"type":"Inteligência Artificial"},{"press":"enter"},{"wait":800}])`.
 5. Só quando o texto não bastar: `look(box)` (forma/cor), `detect_open(["chest"])` (objeto sem texto)
