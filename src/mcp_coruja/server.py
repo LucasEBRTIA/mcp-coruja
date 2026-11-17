@@ -18,7 +18,7 @@ from rapidocr_onnxruntime import RapidOCR
 
 from .detector import MODEL_PATH, IconDetector
 from .diff import diff_elements
-from .fusion import fuse
+from .fusion import clean_texts, fuse
 from . import control, game_profile
 from .schema import quad_to_box, to_compact
 
@@ -222,7 +222,7 @@ def _read(img, min_conf, with_icons=True):
     icons = _icon_engine() if with_icons else None
     # 0.3: no OmniParser os icones ficam na faixa 0.3-0.5; o min_conf do OCR (0.5) cortaria quase tudo.
     icons = icons.run(img, min_conf=0.3) if icons else []
-    return fuse(_ocr_texts(img, min_conf), icons)
+    return fuse(clean_texts(_ocr_texts(img, min_conf)), icons)
 
 
 def _shift(elements, dx, dy):

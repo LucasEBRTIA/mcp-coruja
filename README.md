@@ -170,8 +170,8 @@ Sem os passos 2–4, nada quebra: `detect_game` responde explicando o que falta.
 - **Jogos com anti-cheat** (ex.: Zenless Zone Zero) ignoram `SendInput`, travam o foco e prendem
   o cursor num clip 1×1. Aí só visão funciona; controle exigiria driver/hardware. O `click`
   detecta o cursor preso e devolve erro em vez de clicar no lugar errado.
-- OCR erra fonte estilizada e inventa `品`/`凹` a partir de ícones; `read_region` com recorte
-  maior e `min_conf` mais baixo ajuda.
+- OCR erra fonte estilizada e cola palavras ("Falecom Bonnie"); ideograma CJK sozinho (`品`, `凹`)
+  já é descartado junto com caixas duplicadas. `read_region` com recorte maior ajuda.
 - `describe_scene` em captura de UI costuma dizer "tela com ícones" — o Florence-2-base é bom em
   foto, genérico em interface.
 - `detect_open` confunde ícone de HUD com o objeto; passe `box` para a área de jogo e use prompt

@@ -1,5 +1,10 @@
 """Junta OCR + caixas de icone num unico array de elementos (funcao pura)."""
 
+import re
+
+# Ideograma CJK sozinho e ruido: o OCR rapido "inventa" 品/凹/口 em cima de icones.
+_CJK_SOLO = re.compile(r"^[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]$")
+
 
 def _center(box):
     x, y, w, h = box
@@ -10,6 +15,32 @@ def _contains(outer, inner):
     cx, cy = _center(inner)
     x, y, w, h = outer
     return x <= cx <= x + w and y <= cy <= y + h
+
+
+def _iou(a, b):
+    ax, ay, aw, ah = a
+    bx, by, bw, bh = b
+    x1, y1 = max(ax, bx), max(ay, by)
+    x2, y2 = min(ax + aw, bx + bw), min(ay + ah, by + bh)
+    inter = max(0, x2 - x1) * max(0, y2 - y1)
+    union = aw * ah + bw * bh - inter
+    return inter / union if union else 0.0
+
+
+def clean_texts(texts):
+    """Tira ruido do OCR antes da fusao: ideograma CJK sozinho e caixa duplicada."""
+    out = []
+    for t in texts:
+        if _CJK_SOLO.match(t["txt"]):
+            continue
+        dup = next((o for o in out if o["txt"].casefold() == t["txt"].casefold()
+                    and _iou(o["box"], t["box"]) > 0.8), None)
+        if dup:
+            if t["c"] > dup["c"]:
+                dup.update(t)
+            continue
+        out.append(t)
+    return out
 
 
 def fuse(texts, icons, min_h=10):
