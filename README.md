@@ -90,7 +90,8 @@ O servidor fala stdio; não escreva nada em stdout além do protocolo.
 | `save_debug(folder?)` | salva frame PNG + elementos JSON (inspeção/fixtures) | ~40 ms |
 
 Coordenadas são sempre **pixels da janela** (não da tela); a conversão para tela acontece só
-dentro do clique.
+dentro do clique. `do` e `wait_for` existem para gastar menos passos: agrupe o que não precisa de
+inspeção e espere o texto em vez de repetir `observe`.
 
 ## Fluxo recomendado para o agente
 
@@ -174,7 +175,7 @@ Sem os passos 2–4, nada quebra: `detect_game` responde explicando o que falta.
 - `describe_scene` em captura de UI costuma dizer "tela com ícones" — o Florence-2-base é bom em
   foto, genérico em interface.
 - `detect_open` confunde ícone de HUD com o objeto; passe `box` para a área de jogo e use prompt
-  específico ("anime girl" > "character").
+  específico ("anime girl" > "character"). `min_conf` 0,1 traz candidatos; 0,3 só o óbvio.
 - As caixas de HUD do perfil são pixels fixos: resolução diferente = ajustar à mão.
 - Primeira chamada de cada modelo paga a carga: OCR ~0,5 s, Florence ~2 s, OWLv2 ~1,5 s.
 
