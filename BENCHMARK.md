@@ -80,7 +80,7 @@ O valor da tabela é do **turno inteiro**, não da ferramenta. Medindo o lado do
 | :--- | ---: |
 | Definições das 20 ferramentas (schema enviado a cada request) | ≈ **1.900 tokens** |
 | Resposta de uma ferramenta | **50–650 tokens** (`observe` completo ≈650, `diff` ≈70, `read_region` ≈90) |
-| Raciocínio e mensagens do agente | o restante (≈5.000+) |
+| Raciocínio e mensagens do agente | o restante (≈1.500–2.500 na v2) |
 
 Latência por chamada (não coberta pelo teste de tokens): `observe` ≈480 ms, `read_region` ≈220 ms,
 `detect_open` ≈400 ms, `look` ≈35 ms com DirectML.
@@ -142,9 +142,10 @@ xychart-beta
   - **Verbosidade da Árvore:** Um único `desktop_snapshot` na janela do Chrome gerou **26.032 bytes** de JSON, exigindo *offload* para arquivo externo para não saturar a janela de contexto.
 
 ### 3. 👁️ VLM Puro (Screenshots 1080p)
-- **Pontos Fortes:** Menor atrito em fluxos curtos (3 passos a menos na tarefa da Wikipédia), pois o modelo enxerga a tela inteira de uma só vez sem depender de acessibilidade ou etapas de OCR.
+- **Pontos Fortes:** Não depende de acessibilidade, OCR nem de instalar nada; em tarefas muito curtas (2–5 ações) dispensa qualquer sincronização.
 - **Gargalos Identificados:**
-  - **Custo por Passo (+33,8% maior):** A média de novos tokens de entrada por step foi de **10.473** contra **7.829** no `mcp-coruja`.
+  - **Custo por passo (+149% contra a v2):** a média de novos tokens de entrada por step foi de **10.473**, contra **4.213** do `mcp-coruja` v2 (na v1 eram 7.829, +34%).
+  - **Mais passos, não menos:** 17 contra 9 da v2 na tarefa da Wikipédia — "ver a tela inteira" não compensou o retrabalho de cada captura.
   - **Efeito Bola de Neve em Tarefas Longas:** Como cada captura 1920×1032 permanece no histórico multimodal, fluxos extensos (dezenas ou centenas de ações em jogos ou sistemas complexos) acumulam dezenas de imagens na janela de contexto, elevando latência e custo rapidamente.
 
 ---
@@ -171,7 +172,7 @@ Neste segundo teste, elevamos a complexidade para avaliar como cada abordagem se
 | **Passos Executados** | **10 steps** | 20 steps *(interrompido)* | 20 steps |
 | **Recorte Regional do Player** | ✅ **Nativo** via `look(box=[...])` | ❌ Sem suporte a sub-região | ⚠️ Exigiu script Python (PIL) externo |
 | **Resiliência a DOMs densos** | ✅ Imune (baseado em pixels/OCR) | ❌ Travou em **2.041 nós** (depth 27) | ✅ Imune (baseado em pixels) |
-| **Volume Total de Tokens no Turno** | **~4.23 Milhões** | — *(inconclusivo por falha)* | **~6.86 Milhões (+62%)** |
+| **Tokens totais no turno (inclui cache)** | **~4.23 Milhões** | — *(inconclusivo por falha)* | **~6.86 Milhões (+62%)** |
 | **Imagens Full HD no Histórico** | **0** (apenas 1 JPEG regional leve) | 0 | 5 capturas Full HD (1920×1080) |
 
 ---
@@ -187,10 +188,10 @@ xychart-beta
     bar [10, 20, 20]
 ```
 
-#### 2. Volume de Tokens Acumulados no Turno Multimodal
+#### 2. Volume de Tokens no Turno (Milhões, inclui cache)
 ```mermaid
 xychart-beta
-    title "Volume de Tokens no Turno (Milhões)"
+    title "Volume de Tokens no Turno (Milhões, inclui cache)"
     x-axis ["mcp-coruja v2 (Recorte Nativo)", "VLM Puro (5 Screenshots 1080p)"]
     y-axis "Milhões de Tokens" 0 --> 8
     bar [4.23, 6.86]
@@ -212,13 +213,18 @@ Com o `mcp-coruja`, o agente usou `do` para abrir e pesquisar rapidamente, `wait
 ```python
 look(box=[720, 140, 500, 840])
 ```
-- A GPU/GDI recorta **somente a área do vídeo** em memória local.
+- **A GPU/GDI não entra no recorte:** o `look` corta em memória local (OpenCV) no frame já capturado, e só a região vira JPEG no histórico.
 - O histórico do agente recebeu apenas um JPEG comprimido de 500×840 px, sem acumular frames desnecessários de interface.
 
 #### 3. O Custo Oculto do VLM Puro em Mídias Dinâmicas
 O VLM Puro conseguiu navegar visualmente até o vídeo, mas:
 - Para monitorar o carregamento e navegação, gerou **5 capturas Full HD completas (1920×1080)** no contexto multimodal, inflacionando o turno para **6.86M tokens** (+62% em relação ao `mcp-coruja`).
 - Como o modelo não tem ferramenta de recorte visual nativo, o agente precisou estimar as coordenadas da área do vídeo e gerar/executar um script Python com a biblioteca Pillow (`Image.crop`) para salvar o resultado final.
+
+#### 4. O que este teste não isolou
+O Teste 2 comparou **tokens totais no turno** (com cache). O número de tokens *novos* não foi
+separado aqui, então os **+62%** são de histórico acumulado, não de entrada por chamada. No Teste 1,
+onde os dois foram medidos, a diferença de tokens novos foi de **4,7×** a favor da v2.
 
 ---
 
