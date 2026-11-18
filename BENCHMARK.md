@@ -8,7 +8,7 @@ Este documento apresenta os resultados de um benchmark prático e controlado com
 
 ---
 
-## 🎯 Cenário do Benchmark Controlado
+## 📖 Teste 1: Wikipédia (Navegação & Extração de Texto)
 
 Para garantir comparação justa, todas as rodadas partiram do **mesmo estado inicial** (Google Chrome fechado) e executaram exatamente a mesma tarefa:
 
@@ -45,31 +45,31 @@ flowchart LR
 
 ---
 
-## 📊 Resultados Consolidados (Execução Pura da Tarefa)
+## 📊 Resultados do Teste 1: Wikipédia
 
 Ao isolar estritamente a execução da tarefa (da abertura do Chrome até o fechamento, desconsiderando passos iniciais de descoberta de caminho do executável no Windows):
 
 ### Execução da tarefa
 
-| Métrica | 🦉 `mcp-coruja` | 🖥️ `agent-desktop` (UIA) | 👁️ VLM Puro (Screenshots) |
-| :--- | :---: | :---: | :---: |
-| **Status da Tarefa** | ✅ **100% Concluída** | ❌ **Bloqueada no conteúdo Web** | ✅ **100% Concluída** |
-| **Passos na Execução Pura** | 20 steps | 29 steps *(turno completo)* | **17 steps** |
-| **Payload por Inspeção** | ~200–500 tokens (texto) | **26.032 bytes** (1 snapshot JSON) | Imagem PNG 1920×1032 |
+| Métrica | 🦉 `mcp-coruja` (v1) | 🦉⚡ `mcp-coruja` (v2: `do` + `wait_for`) | 🖥️ `agent-desktop` (UIA) | 👁️ VLM Puro (Screenshots) |
+| :--- | :---: | :---: | :---: | :---: |
+| **Status da Tarefa** | ✅ **100% Concluída** | ✅ **100% Concluída** | ❌ **Bloqueada no conteúdo Web** | ✅ **100% Concluída** |
+| **Passos na Execução Pura** | 20 steps | **9 steps** | 29 steps *(turno completo)* | 17 steps |
+| **Payload por Inspeção** | ~200–500 tokens (texto) | ~70–500 tokens (`diff` / texto) | **26.032 bytes** (1 snapshot JSON) | Imagem PNG 1920×1032 |
 
 ### Consumo de tokens
 
 Os dois números andam juntos: **tokens novos** é o que entra de fato a cada chamada; **tokens totais** incluem tudo o que ficou no histórico, inclusive o que foi lido de cache.
 
-| Métrica | 🦉 `mcp-coruja` | 🖥️ `agent-desktop` (UIA) | 👁️ VLM Puro (Screenshots) |
-| :--- | :---: | :---: | :---: |
-| **Tokens novos / step (média)** | **7.829** | 4.119 *(com falhas)* | 10.473 |
-| **Tokens novos no turno** | **≈ 157 mil** | ≈ 119 mil | 178 mil |
-| **Tokens totais no turno (inclui cache)** | **2.381.247** | 3.784.807 *(turno completo)* | 2.390.493 |
-| **Tokens de output / step (média)** | **121** | 176 | 186 |
+| Métrica | 🦉 `mcp-coruja` (v1) | 🦉⚡ `mcp-coruja` (v2: `do` + `wait_for`) | 🖥️ `agent-desktop` (UIA) | 👁️ VLM Puro (Screenshots) |
+| :--- | :---: | :---: | :---: | :---: |
+| **Tokens novos / step (média)** | 7.829 | **4.213** | 4.119 *(com falhas)* | 10.473 |
+| **Tokens novos no turno** | ≈ 157 mil | **37.915** | ≈ 119 mil | 178 mil |
+| **Tokens totais no turno (inclui cache)** | 2.381.247 | **1.831.101** | 3.784.807 *(turno completo)* | 2.390.493 |
+| **Tokens de output / step (média)** | **121** | 154 | 176 | 186 |
 
 > [!NOTE]
-> Mesmo executando **3 passos a menos** (17 vs 20), o **VLM Puro consumiu mais tokens** — tanto novos no turno (≈178 mil vs ≈157 mil) quanto totais (2.390.493 vs 2.381.247) — devido ao peso multimodal das capturas de tela em Full HD acumuladas no histórico.
+> Com a introdução de **`do`** (ações em lote) e **`wait_for`** (espera ativa por texto devolvendo apenas `diff`), mais a redução de schema (-17%) e filtragem de ruído no OCR, o **`mcp-coruja` v2** reduziu os passos em **55%** (20 → 9) e os **tokens novos em ~76%** (≈157 mil → 37.915). Frente ao **VLM Puro**, o `mcp-coruja` v2 precisou de quase metade dos passos (9 vs 17) e consumiu **4,7× menos tokens novos** (37.915 vs ≈178 mil).
 
 ### O que compõe os "tokens novos por step"
 
@@ -99,9 +99,9 @@ contra uma imagem Full HD por passo.
 ```mermaid
 xychart-beta
     title "Média de Input Tokens Novos por Step"
-    x-axis ["mcp-coruja", "VLM Puro (1080p)"]
+    x-axis ["mcp-coruja v2", "mcp-coruja v1", "VLM Puro (1080p)"]
     y-axis "Tokens por Step" 0 --> 12000
-    bar [7829, 10473]
+    bar [4213, 7829, 10473]
 ```
 
 ### 2. Total de Tokens na Execução Pura da Tarefa (Milhões)
@@ -109,9 +109,9 @@ xychart-beta
 ```mermaid
 xychart-beta
     title "Volume Total de Tokens na Execução Pura (M)"
-    x-axis ["mcp-coruja (20 steps)", "VLM Puro (17 steps)"]
-    y-axis "Milhões de Tokens" 2.30 --> 2.42
-    bar [2.381, 2.390]
+    x-axis ["mcp-coruja v2 (9 steps)", "mcp-coruja v1 (20 steps)", "VLM Puro (17 steps)"]
+    y-axis "Milhões de Tokens" 1.50 --> 2.50
+    bar [1.831, 2.381, 2.390]
 ```
 
 ### 3. Passos Necessários vs. Taxa de Sucesso
@@ -119,9 +119,9 @@ xychart-beta
 ```mermaid
 xychart-beta
     title "Passos na Execução Pura vs. Turno com Bloqueio"
-    x-axis ["VLM Puro (OK)", "mcp-coruja (OK)", "agent-desktop (Falhou)"]
+    x-axis ["mcp-coruja v2 (OK)", "VLM Puro (OK)", "mcp-coruja v1 (OK)", "agent-desktop (Falhou)"]
     y-axis "Quantidade de Steps" 0 --> 35
-    bar [17, 20, 29]
+    bar [9, 17, 20, 29]
 ```
 
 ---
@@ -149,7 +149,80 @@ xychart-beta
 
 ---
 
-## 🏆 Conclusão
+## 🎬 Teste 2: YouTube Shorts (DOM Complexo, Vídeo Assíncrono & Recorte Regional)
+
+Neste segundo teste, elevamos a complexidade para avaliar como cada abordagem se comporta diante de **aplicações web modernas assíncronas**, árvores de acessibilidade densas (>2.000 nós) e a exigência de **recorte regional de precisão** (*bounding box*):
+
+### O Desafio
+1. Iniciar o Google Chrome.
+2. Navegar até o YouTube (`https://www.youtube.com`).
+3. Pesquisar por `"inteligencia artificial"`.
+4. Abrir o primeiro vídeo no formato **Shorts**.
+5. Aguardar o carregamento e **tirar um print somente da região do player de vídeo** (descartando barras pretas, comentários, botões laterais e cabeçalho do navegador).
+6. Fechar o navegador e entregar a imagem recortada.
+
+---
+
+### 📊 Resultados do Teste 2 (YouTube Shorts)
+
+| Métrica | 🦉⚡ `mcp-coruja` (v2) | 🖥️ `agent-desktop` (UIA) | 👁️ VLM Puro (Screenshots 1080p) |
+| :--- | :---: | :---: | :---: |
+| **Status da Tarefa** | ✅ **100% Concluída** | ❌ **Falha (Timeout no DOM)** | ✅ **Concluída (com script externo)** |
+| **Passos Executados** | **10 steps** | 20 steps *(interrompido)* | 20 steps |
+| **Recorte Regional do Player** | ✅ **Nativo** via `look(box=[...])` | ❌ Sem suporte a sub-região | ⚠️ Exigiu script Python (PIL) externo |
+| **Resiliência a DOMs densos** | ✅ Imune (baseado em pixels/OCR) | ❌ Travou em **2.041 nós** (depth 27) | ✅ Imune (baseado em pixels) |
+| **Volume Total de Tokens no Turno** | **~4.23 Milhões** | — *(inconclusivo por falha)* | **~6.86 Milhões (+62%)** |
+| **Imagens Full HD no Histórico** | **0** (apenas 1 JPEG regional leve) | 0 | 5 capturas Full HD (1920×1080) |
+
+---
+
+### 📈 Gráficos Comparativos: Teste 2
+
+#### 1. Passos Necessários para Concluir o Teste do YouTube Shorts
+```mermaid
+xychart-beta
+    title "Passos até a Conclusão: YouTube Shorts"
+    x-axis ["mcp-coruja v2", "VLM Puro (1080p)", "agent-desktop (Timeout)"]
+    y-axis "Quantidade de Passos" 0 --> 25
+    bar [10, 20, 20]
+```
+
+#### 2. Volume de Tokens Acumulados no Turno Multimodal
+```mermaid
+xychart-beta
+    title "Volume de Tokens no Turno (Milhões)"
+    x-axis ["mcp-coruja v2 (Recorte Nativo)", "VLM Puro (5 Screenshots 1080p)"]
+    y-axis "Milhões de Tokens" 0 --> 8
+    bar [4.23, 6.86]
+```
+
+---
+
+### 🔬 O Que Este Teste Revelou
+
+#### 1. O Abismo de DOMs Modernos no UI Automation (`agent-desktop`)
+Ao abrir a página de busca do YouTube, o `agent-desktop` tentou inspecionar e interagir com os elementos via acessibilidade do Windows. O resultado foi um estouro de limite da árvore:
+```text
+TIMEOUT: Locator traversal returned incomplete evidence (nodes_visited: 2041, max_depth: 27)
+```
+Em SPAs complexas, o número de nós aninhados torna a travessia UIA inviável. Além disso, o `agent-desktop` não possui mecanismo nativo para capturar uma sub-região arbitrária da janela (apenas a tela cheia ou janelas inteiras do SO).
+
+#### 2. O Recorte Regional Nativo do `mcp-coruja` (`look(box=[x,y,w,h])`)
+Com o `mcp-coruja`, o agente usou `do` para abrir e pesquisar rapidamente, `wait_for` para sincronizar com o carregamento do Short e, em seguida, realizou o recorte exato do player:
+```python
+look(box=[720, 140, 500, 840])
+```
+- A GPU/GDI recorta **somente a área do vídeo** em memória local.
+- O histórico do agente recebeu apenas um JPEG comprimido de 500×840 px, sem acumular frames desnecessários de interface.
+
+#### 3. O Custo Oculto do VLM Puro em Mídias Dinâmicas
+O VLM Puro conseguiu navegar visualmente até o vídeo, mas:
+- Para monitorar o carregamento e navegação, gerou **5 capturas Full HD completas (1920×1080)** no contexto multimodal, inflacionando o turno para **6.86M tokens** (+62% em relação ao `mcp-coruja`).
+- Como o modelo não tem ferramenta de recorte visual nativo, o agente precisou estimar as coordenadas da área do vídeo e gerar/executar um script Python com a biblioteca Pillow (`Image.crop`) para salvar o resultado final.
+
+---
+
+## 🏆 Conclusão Consolidada
 
 | Cenário de Uso | Melhor Abordagem |
 | :--- | :--- |
