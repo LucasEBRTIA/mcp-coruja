@@ -172,8 +172,11 @@ Neste segundo teste, elevamos a complexidade para avaliar como cada abordagem se
 | **Passos Executados** | **10 steps** | 20 steps *(interrompido)* | 20 steps |
 | **Recorte Regional do Player** | ✅ **Nativo** via `look(box=[...])` | ❌ Sem suporte a sub-região | ⚠️ Exigiu script Python (PIL) externo |
 | **Resiliência a DOMs densos** | ✅ Imune (baseado em pixels/OCR) | ❌ Travou em **2.041 nós** (depth 27) | ✅ Imune (baseado em pixels) |
-| **Tokens totais no turno (inclui cache)** | **~4.23 Milhões** | — *(inconclusivo por falha)* | **~6.86 Milhões (+62%)** |
-| **Imagens Full HD no Histórico** | **0** (apenas 1 JPEG regional leve) | 0 | 5 capturas Full HD (1920×1080) |
+| **Tokens novos no turno** | **42.119** | 46.520 *(com falhas)* | **138.388** *(3,3× mais)* |
+| **Tokens novos / passo** (÷ passos) | **4.212** | 2.326 | **6.919** |
+| **Imagens enviadas ao modelo** | **1** (crop regional 500×840) | 0 | **9** (5 em 1080p) |
+| **Pico de payload por imagem** | ≈3.347 tokens | — | ≈3.361 tokens |
+| **Tokens totais no turno (inclui cache)** | **4.231.125** | 4.930.365 | **14.195.352** *(3,4× mais)* |
 
 ---
 
@@ -192,9 +195,9 @@ xychart-beta
 ```mermaid
 xychart-beta
     title "Volume de Tokens no Turno (Milhões, inclui cache)"
-    x-axis ["mcp-coruja v2 (Recorte Nativo)", "VLM Puro (5 Screenshots 1080p)"]
-    y-axis "Milhões de Tokens" 0 --> 8
-    bar [4.23, 6.86]
+    x-axis ["mcp-coruja v2 (Recorte Nativo)", "VLM Puro (9 imagens, 5 em 1080p)"]
+    y-axis "Milhões de Tokens" 0 --> 15
+    bar [4.23, 14.20]
 ```
 
 ---
@@ -218,13 +221,21 @@ look(box=[720, 140, 500, 840])
 
 #### 3. O Custo Oculto do VLM Puro em Mídias Dinâmicas
 O VLM Puro conseguiu navegar visualmente até o vídeo, mas:
-- Para monitorar o carregamento e navegação, gerou **5 capturas Full HD completas (1920×1080)** no contexto multimodal, inflacionando o turno para **6.86M tokens** (+62% em relação ao `mcp-coruja`).
+- Para monitorar o carregamento e navegação, gerou **9 imagens** (5 delas em Full HD) no contexto multimodal: **138.388 tokens novos** no turno contra **42.119** do `mcp-coruja` (**3,3×**) e **14,2M tokens totais** (com cache) contra 4,23M (**3,4×**).
 - Como o modelo não tem ferramenta de recorte visual nativo, o agente precisou estimar as coordenadas da área do vídeo e gerar/executar um script Python com a biblioteca Pillow (`Image.crop`) para salvar o resultado final.
 
-#### 4. O que este teste não isolou
-O Teste 2 comparou **tokens totais no turno** (com cache). O número de tokens *novos* não foi
-separado aqui, então os **+62%** são de histórico acumulado, não de entrada por chamada. No Teste 1,
-onde os dois foram medidos, a diferença de tokens novos foi de **4,7×** a favor da v2.
+#### 4. Onde exatamente a diferença nasce
+
+| Componente | 🦉 `mcp-coruja` v2 | 👁️ VLM Puro |
+| :--- | ---: | ---: |
+| Imagens enviadas | 1 | 9 |
+| Passos | 10 | 20 |
+| Tokens novos / passo | 4.212 | 6.919 |
+
+Duas coisas que os números mostram e que não são óbvias:
+
+- **A imagem não é o vilão sozinha.** Um crop de 500×840 custa ≈3.347 tokens e um print 1080p custa ≈3.361 — praticamente o mesmo. O que pesa é a **quantidade**: 1 imagem contra 9 (≈27 mil tokens de imagem no VLM).
+- **O resto vem dos passos.** Cada passo carrega contexto; com o dobro de passos e 9 imagens no histórico, o VLM gasta 3,3× mais tokens novos e 3,4× mais no total, mesmo sem contar o script externo que precisou rodar para recortar.
 
 ---
 
