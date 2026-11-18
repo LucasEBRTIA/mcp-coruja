@@ -2,7 +2,7 @@
 
 Este documento apresenta os resultados de um benchmark prático e controlado comparando três abordagens distintas para automação de interface gráfica (GUI) por agentes de IA no Windows:
 
-1. **`mcp-coruja`** — Visão e OCR local híbrido + controle direto Win32.
+1. **`mcp-coruja`** — Visão e OCR local híbrido + controle direto Win32. Aparece em duas versões: **v1** (antes de `do`/`wait_for`) e **v2** (depois).
 2. **`agent-desktop`** — Árvore de acessibilidade nativa do sistema operacional (*Windows UI Automation*).
 3. **VLM Puro (*Computer Use* tradicional)** — Capturas de tela Full HD (1920×1080) enviadas diretamente ao modelo multimodal.
 
@@ -26,7 +26,7 @@ Para garantir comparação justa, todas as rodadas partiram do **mesmo estado in
 flowchart LR
     subgraph A["🦉 mcp-coruja (Híbrido Local)"]
         A1["Janela Alvo"] --> A2["OCR + Detecção Local"]
-        A2 --> A3["Texto compacto (~200-500 tokens)"]
+        A2 --> A3["Texto compacto (~70–650 tokens)"]
         A3 --> A4["LLM"]
     end
 
@@ -55,7 +55,7 @@ Ao isolar estritamente a execução da tarefa (da abertura do Chrome até o fech
 | :--- | :---: | :---: | :---: | :---: |
 | **Status da Tarefa** | ✅ **100% Concluída** | ✅ **100% Concluída** | ❌ **Bloqueada no conteúdo Web** | ✅ **100% Concluída** |
 | **Passos na Execução Pura** | 20 steps | **9 steps** | 29 steps *(turno completo)* | 17 steps |
-| **Payload por Inspeção** | ~200–500 tokens (texto) | ~70–500 tokens (`diff` / texto) | **26.032 bytes** (1 snapshot JSON) | Imagem PNG 1920×1032 |
+| **Payload por inspeção** | ~200–500 tokens (texto) | ~70–650 tokens (`diff` / `observe`) | **26.032 bytes** (1 snapshot JSON) | Imagem PNG 1920×1032 |
 
 ### Consumo de tokens
 
@@ -67,6 +67,8 @@ Os dois números andam juntos: **tokens novos** é o que entra de fato a cada ch
 | **Tokens novos no turno** | ≈ 157 mil | **37.915** | ≈ 119 mil | 178 mil |
 | **Tokens totais no turno (inclui cache)** | 2.381.247 | **1.831.101** | 3.784.807 *(turno completo)* | 2.390.493 |
 | **Tokens de output / step (média)** | **121** | 154 | 176 | 186 |
+
+*Tokens novos / passo = soma do turno ÷ passos executados. Na v2 a soma vem do log; nas outras colunas é aproximada (média × passos).*
 
 > [!NOTE]
 > Com a introdução de **`do`** (ações em lote) e **`wait_for`** (espera ativa por texto devolvendo apenas `diff`), mais a redução de schema (-17%) e filtragem de ruído no OCR, o **`mcp-coruja` v2** reduziu os passos em **55%** (20 → 9) e os **tokens novos em ~76%** (≈157 mil → 37.915). Frente ao **VLM Puro**, o `mcp-coruja` v2 precisou de quase metade dos passos (9 vs 17) e consumiu **4,7× menos tokens novos** (37.915 vs ≈178 mil).
@@ -132,6 +134,7 @@ xychart-beta
 - **Pontos Fortes:**
   - **Independência de UIA/DOM:** Funciona de maneira uniforme em navegadores, apps Electron/Chromium (como Steam) e jogos DirectX/Vulkan.
   - **Contexto Enxuto:** `observe` e `read_region` processam a imagem localmente e enviam apenas texto e coordenadas (`e1 text "Wikipedia" 480,104`), evitando poluir o histórico com imagens pesadas.
+  - **Passos enxutos (v2):** `do` agrupa cliques/teclas numa chamada e `wait_for` sincroniza sem `observe` em loop — na Wikipédia, 20 → **9 passos** e ≈157 mil → **37.915 tokens novos**.
   - **Escalabilidade:** Em um teste anterior de longa duração na **Steam** (identificação de 17 jogos instalados, leitura de tempo de jogo de cada um e desinstalação de 4 títulos), o `mcp-coruja` completou **155 chamadas** mantendo **~93% do contexto em cache** (10.254.029 tokens via *Cache Read* contra 758.763 tokens novos processados).
 - **Trade-off:** Pode exigir alguns cliques ou leituras regionais adicionais (`read_region`) quando uma interface tem muitos elementos densos.
 
@@ -173,10 +176,12 @@ Neste segundo teste, elevamos a complexidade para avaliar como cada abordagem se
 | **Recorte Regional do Player** | ✅ **Nativo** via `look(box=[...])` | ❌ Sem suporte a sub-região | ⚠️ Exigiu script Python (PIL) externo |
 | **Resiliência a DOMs densos** | ✅ Imune (baseado em pixels/OCR) | ❌ Travou em **2.041 nós** (depth 27) | ✅ Imune (baseado em pixels) |
 | **Tokens novos no turno** | **42.119** | 46.520 *(com falhas)* | **138.388** *(3,3× mais)* |
-| **Tokens novos / passo** (÷ passos) | **4.212** | 2.326 | **6.919** |
+| **Tokens novos / passo** (÷ passos) | **4.212** | 2.326 *(falhou)* | **6.919** |
 | **Imagens enviadas ao modelo** | **1** (crop regional 500×840) | 0 | **9** (5 em 1080p) |
 | **Pico de payload por imagem** | ≈3.347 tokens | — | ≈3.361 tokens |
 | **Tokens totais no turno (inclui cache)** | **4.231.125** | 4.930.365 | **14.195.352** *(3,4× mais)* |
+
+*Na v2, "tokens novos / passo" = 42.119 ÷ 10; nos demais, ÷ 20. O `agent-desktop` travou no meio do turno: os números dele existem, mas não são comparáveis.*
 
 ---
 
@@ -216,7 +221,7 @@ Com o `mcp-coruja`, o agente usou `do` para abrir e pesquisar rapidamente, `wait
 ```python
 look(box=[720, 140, 500, 840])
 ```
-- **A GPU/GDI não entra no recorte:** o `look` corta em memória local (OpenCV) no frame já capturado, e só a região vira JPEG no histórico.
+- **O recorte é CPU, não GPU:** o `look` corta em memória local (OpenCV) no frame já capturado, e só a região vira JPEG no histórico.
 - O histórico do agente recebeu apenas um JPEG comprimido de 500×840 px, sem acumular frames desnecessários de interface.
 
 #### 3. O Custo Oculto do VLM Puro em Mídias Dinâmicas
@@ -234,7 +239,7 @@ O VLM Puro conseguiu navegar visualmente até o vídeo, mas:
 
 Duas coisas que os números mostram e que não são óbvias:
 
-- **A imagem não é o vilão sozinha.** Um crop de 500×840 custa ≈3.347 tokens e um print 1080p custa ≈3.361 — praticamente o mesmo. O que pesa é a **quantidade**: 1 imagem contra 9 (≈27 mil tokens de imagem no VLM).
+- **A imagem não é o vilão sozinha.** Um crop de 500×840 custa ≈3.347 tokens e um print 1080p custa ≈3.361 — praticamente o mesmo. O que pesa é a **quantidade**: 1 imagem contra 9, ou seja ≈30 mil tokens só de imagem no VLM (mais da metade dos 42 mil tokens novos da v2).
 - **O resto vem dos passos.** Cada passo carrega contexto; com o dobro de passos e 9 imagens no histórico, o VLM gasta 3,3× mais tokens novos e 3,4× mais no total, mesmo sem contar o script externo que precisou rodar para recortar.
 
 ---
@@ -247,3 +252,5 @@ Duas coisas que os números mostram e que não são óbvias:
 | **Apps nativos simples do Windows com acessibilidade completa** | 🖥️ **`agent-desktop`** |
 | **Automação Web dedicada (sem precisar simular mouse/visão no SO)** | 🌐 **CDP / Playwright** |
 | **Tarefas visuais muito curtas (2–5 cliques) sem suporte a OCR/UIA** | 👁️ **VLM Puro** |
+
+*Em jogo com anti-cheat que filtra `SendInput` (ex.: Zenless Zone Zero), o **controle** não chega — a visão funciona. Ver "Limites conhecidos" no README.*
